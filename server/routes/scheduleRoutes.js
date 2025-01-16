@@ -1,19 +1,18 @@
 const express = require("express");
-const {
-  createSchedule,
-  getSchedules,
-  getScheduleById,
-  updateSchedule,
-  deleteSchedule,
-} = require("../controllers/scheduleController");
+const scheduleController = require("../controllers/scheduleController");
+const auth = require("../middleware/auth");
+const roleAuth = require("../middleware/roleAuth");
 
 const router = express.Router();
 
-// Schedule Routes
-router.post("/", createSchedule); // Create a schedule
-router.get("/", getSchedules); // Get all schedules
-router.get("/:id", getScheduleById); // Get a schedule by ID
-router.put("/:id", updateSchedule); // Update a schedule by ID
-router.delete("/:id", deleteSchedule); // Delete a schedule by ID
+// Protect all routes with authentication
+router.use(auth);
+
+// Schedule routes
+router.get("/", scheduleController.getSchedules);
+router.post("/", roleAuth(["lawyer"]), scheduleController.createSchedule);
+router.get("/:id", scheduleController.getScheduleById);
+router.put("/:id", roleAuth(["lawyer"]), scheduleController.updateSchedule);
+router.delete("/:id", roleAuth(["lawyer"]), scheduleController.deleteSchedule);
 
 module.exports = router;

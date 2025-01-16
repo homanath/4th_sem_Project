@@ -1,57 +1,108 @@
-const { Schedule, User } = require("../models");
+const { Schedule, Case, User } = require('../models');
 
-// Helper function for error handling
-const handleError = (res, error) => res.status(500).json({ error: error.message });
-
-module.exports = {
-  createSchedule: async (req, res) => {
+const scheduleController = {
+  getSchedules: async (req, res) => {
     try {
-      const { eventTitle, date, description, userId } = req.body;
-      const schedule = await Schedule.create({ eventTitle, date, description, userId });
-      res.status(201).json({ message: "Schedule created successfully", schedule });
+      const schedules = await Schedule.findAll({
+        include: [
+          {
+            model: Case,
+            attributes: ['title']
+          }
+        ],
+        order: [['date', 'ASC']]
+      });
+      res.json(schedules);
     } catch (error) {
-      handleError(res, error);
+      console.error('Error fetching schedules:', error);
+      res.status(500).json({ message: 'Failed to fetch schedules' });
     }
   },
 
-  getSchedules: async (req, res) => {
+  createSchedule: async (req, res) => {
     try {
-      const schedules = await Schedule.findAll({ include: User });
-      res.status(200).json(schedules);
+      const { title, date, description, caseId, type } = req.body;
+      const schedule = await Schedule.create({
+        title,
+        date,
+        description,
+        caseId,
+        type
+      });
+
+      res.status(201).json({
+        message: 'Schedule created successfully',
+        schedule
+      });
     } catch (error) {
-      handleError(res, error);
+      console.error('Error creating schedule:', error);
+      res.status(500).json({ message: 'Failed to create schedule' });
     }
   },
 
   getScheduleById: async (req, res) => {
     try {
-      const { id } = req.params;
-      const schedule = await Schedule.findByPk(id, { include: User });
-      if (!schedule) return res.status(404).json({ message: "Schedule not found" });
-      res.status(200).json(schedule);
+      const schedule = await Schedule.findByPk(req.params.id, {
+        include: [
+          {
+            model: Case,
+            attributes: ['title']
+          }
+        ]
+      });
+
+      if (!schedule) {
+        return res.status(404).json({ message: 'Schedule not found' });
+      }
+
+      res.json(schedule);
     } catch (error) {
-      handleError(res, error);
+      console.error('Error fetching schedule:', error);
+      res.status(500).json({ message: 'Failed to fetch schedule' });
     }
   },
 
   updateSchedule: async (req, res) => {
     try {
-      const { id } = req.params;
-      const { eventTitle, date, description } = req.body;
-      await Schedule.update({ eventTitle, date, description }, { where: { id } });
-      res.status(200).json({ message: "Schedule updated successfully" });
+      const { title, date, description, type } = req.body;
+      const schedule = await Schedule.findByPk(req.params.id);
+
+      if (!schedule) {
+        return res.status(404).json({ message: 'Schedule not found' });
+      }
+
+      await schedule.update({
+        title,
+        date,
+        description,
+        type
+      });
+
+      res.json({
+        message: 'Schedule updated successfully',
+        schedule
+      });
     } catch (error) {
-      handleError(res, error);
+      console.error('Error updating schedule:', error);
+      res.status(500).json({ message: 'Failed to update schedule' });
     }
   },
 
   deleteSchedule: async (req, res) => {
     try {
-      const { id } = req.params;
-      await Schedule.destroy({ where: { id } });
-      res.status(200).json({ message: "Schedule deleted successfully" });
+      const schedule = await Schedule.findByPk(req.params.id);
+
+      if (!schedule) {
+        return res.status(404).json({ message: 'Schedule not found' });
+      }
+
+      await schedule.destroy();
+      res.json({ message: 'Schedule deleted successfully' });
     } catch (error) {
-      handleError(res, error);
+      console.error('Error deleting schedule:', error);
+      res.status(500).json({ message: 'Failed to delete schedule' });
     }
-  },
+  }
 };
+
+module.exports = scheduleController;

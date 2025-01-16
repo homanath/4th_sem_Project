@@ -2,18 +2,17 @@ const express = require("express");
 const {
   createNotification,
   getNotifications,
-  getNotificationById,
-  updateNotification,
-  deleteNotification,
+  markAsRead
 } = require("../controllers/notificationController");
+const auth = require("../middleware/auth");
+const roleAuth = require("../middleware/roleAuth");
 
 const router = express.Router();
 
-// Notification Routes
-router.post("/", createNotification); // Create a notification
-router.get("/", getNotifications); // Get all notifications
-router.get("/:id", getNotificationById); // Get a notification by ID
-router.put("/:id", updateNotification); // Update a notification by ID
-router.delete("/:id", deleteNotification); // Delete a notification by ID
+router.use(auth); // Protect all notification routes
+
+router.post("/", roleAuth('lawyer'), createNotification);
+router.get("/", getNotifications);
+router.put("/:id/read", markAsRead);
 
 module.exports = router;

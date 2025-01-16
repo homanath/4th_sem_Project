@@ -1,0 +1,35 @@
+module.exports = (sequelize, DataTypes) => {
+  const Schedule = sequelize.define('Schedule', {
+    title: {
+      type: DataTypes.STRING,
+      allowNull: false
+    },
+    type: {
+      type: DataTypes.STRING,
+      allowNull: false
+    },
+    date: {
+      type: DataTypes.DATE,
+      allowNull: false
+    },
+    description: {
+      type: DataTypes.TEXT,
+      allowNull: true
+    },
+    caseId: {
+      type: DataTypes.INTEGER,
+      references: {
+        model: 'Cases',
+        key: 'id'
+      }
+    }
+  });
+
+  Schedule.associate = function(models) {
+    Schedule.belongsTo(models.Case, {
+      foreignKey: 'caseId'
+    });
+  };
+
+  return Schedule;
+}; 

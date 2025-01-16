@@ -1,19 +1,21 @@
 const express = require("express");
-const {
-  createUser,
-  getUsers,
-  getUserById,
-  updateUser,
-  deleteUser,
-} = require("../controllers/userController");
+const userController = require("../controllers/userController");
+const auth = require("../middleware/auth");
+const lawyerAuth = require('../middleware/lawyerAuth');
+const upload = require('../middleware/upload');
 
 const router = express.Router();
 
-// User Routes
-router.post("/", createUser); // Create a user
-router.get("/", getUsers); // Get all users
-router.get("/:id", getUserById); // Get a user by ID
-router.put("/:id", updateUser); // Update a user by ID
-router.delete("/:id", deleteUser); // Delete a user by ID
+// Profile routes
+router.get('/profile', auth, userController.getProfile);
+router.put('/profile', auth, upload.single('profilePicture'), userController.updateProfile);
+router.put('/password', auth, userController.updatePassword);
+router.post('/profile/picture', auth, upload.single('profilePicture'), userController.updateProfilePicture);
+
+// Client management routes
+router.get('/clients', auth, lawyerAuth, userController.getClients);
+router.get('/clients/:id', auth, lawyerAuth, userController.getClientById);
+router.post('/register/client', auth, lawyerAuth, userController.createClient);
+router.put('/clients/:id/status', auth, lawyerAuth, userController.updateClientStatus);
 
 module.exports = router;
