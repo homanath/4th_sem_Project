@@ -23,7 +23,7 @@ import Notifications from "./pages/Notifications";
 import Schedules from "./pages/Schedules";
 import Profile from "./pages/Profile";
 import ClientList from "./pages/ClientList";
-// import Lawyers from "./pages/Lawyers";
+
 import Analytics from "./pages/Analytics";
 import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
