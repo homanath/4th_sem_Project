@@ -6,7 +6,8 @@ module.exports = (sequelize, DataTypes) => {
     },
     type: {
       type: DataTypes.STRING,
-      allowNull: false
+      allowNull: false,
+      defaultValue: 'hearing'
     },
     date: {
       type: DataTypes.DATE,
@@ -23,11 +24,15 @@ module.exports = (sequelize, DataTypes) => {
         key: 'id'
       }
     }
+  }, {
+    tableName: 'Schedules',
+    timestamps: true
   });
 
   Schedule.associate = function(models) {
     Schedule.belongsTo(models.Case, {
-      foreignKey: 'caseId'
+      foreignKey: 'caseId',
+      as: 'case'
     });
   };
 

@@ -1,4 +1,4 @@
-const { Schedule, Case, User } = require('../models');
+const { Schedule, Case } = require('../models');
 
 const scheduleController = {
   getSchedules: async (req, res) => {
@@ -7,7 +7,7 @@ const scheduleController = {
         include: [
           {
             model: Case,
-            attributes: ['title']
+            attributes: ['title', 'caseNumber']
           }
         ],
         order: [['date', 'ASC']]
@@ -30,10 +30,7 @@ const scheduleController = {
         type
       });
 
-      res.status(201).json({
-        message: 'Schedule created successfully',
-        schedule
-      });
+      res.status(201).json(schedule);
     } catch (error) {
       console.error('Error creating schedule:', error);
       res.status(500).json({ message: 'Failed to create schedule' });
@@ -46,7 +43,7 @@ const scheduleController = {
         include: [
           {
             model: Case,
-            attributes: ['title']
+            attributes: ['title', 'caseNumber']
           }
         ]
       });
@@ -78,10 +75,7 @@ const scheduleController = {
         type
       });
 
-      res.json({
-        message: 'Schedule updated successfully',
-        schedule
-      });
+      res.json(schedule);
     } catch (error) {
       console.error('Error updating schedule:', error);
       res.status(500).json({ message: 'Failed to update schedule' });

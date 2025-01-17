@@ -73,16 +73,17 @@ export default function Schedules() {
   };
 
   const getStatusColor = (date) => {
-    const now = new Date();
     const scheduleDate = new Date(date);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
 
-    if (scheduleDate < now) {
+    if (scheduleDate < today) {
       return "bg-gray-100 text-gray-800"; // Past
+    } else if (scheduleDate.toDateString() === today.toDateString()) {
+      return "bg-yellow-100 text-yellow-800"; // Today
+    } else {
+      return "bg-green-100 text-green-800"; // Upcoming
     }
-    if (scheduleDate.getDate() === now.getDate()) {
-      return "bg-red-100 text-red-800"; // Today
-    }
-    return "bg-green-100 text-green-800"; // Upcoming
   };
 
   if (loading) {
