@@ -19,7 +19,7 @@ export default function Login() {
     setLoading(true);
 
     try {
-      const response = await api.post("/api/auth/login", formData);
+      const response = await api.post("/auth/login", formData);
 
       // Store token in localStorage
       localStorage.setItem("token", response.data.token);

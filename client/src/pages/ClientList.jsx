@@ -23,7 +23,7 @@ export default function ClientList() {
       setError(null);
 
       // Updated API endpoint
-      const response = await api.get("/api/users/clients");
+      const response = await api.get("/users/clients");
 
       if (!response.data) {
         throw new Error("No data received from server");
@@ -50,7 +50,7 @@ export default function ClientList() {
   const handleStatusChange = async (clientId, currentStatus) => {
     try {
       setStatusLoading(clientId);
-      const response = await api.put(`/api/users/clients/${clientId}/status`, {
+      const response = await api.put(`/users/clients/${clientId}/status`, {
         status: currentStatus === "active" ? "inactive" : "active",
       });
 
@@ -81,7 +81,7 @@ export default function ClientList() {
   // Handle adding new client
   const handleAddClient = async (newClient) => {
     try {
-      const response = await api.post("/api/users/register/client", {
+      const response = await api.post("/users/register/client", {
         ...newClient,
         role: "client",
         lawyerId: user.id,

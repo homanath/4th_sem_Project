@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import api from "../services/api";
 import { format } from "date-fns";
+import { toast } from 'react-hot-toast';
 
 export default function ScheduleForm({
   onSubmit,
@@ -12,9 +13,9 @@ export default function ScheduleForm({
   const [error, setError] = useState("");
   const [formData, setFormData] = useState({
     title: initialData?.title || "",
-    type: initialData?.type || "hearing",
+    type: initialData?.type || "other",
     date: initialData?.date
-      ? format(new Date(initialData.date), "yyyy-MM-dd'T'HH:mm")
+      ? new Date(initialData.date).toISOString().slice(0, 16)
       : "",
     description: initialData?.description || "",
     caseId: initialData?.caseId || "",
@@ -49,6 +50,7 @@ export default function ScheduleForm({
 
     try {
       await onSubmit(formData);
+      toast.success(initialData ? 'Schedule updated' : 'Schedule created');
       onCancel(); // Close form on success
     } catch (err) {
       setError(err.message || "Failed to save schedule");

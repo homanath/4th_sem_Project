@@ -23,7 +23,7 @@ export default function CaseList() {
   const fetchCases = async () => {
     try {
       setLoading(true);
-      const response = await api.get("/api/cases");
+      const response = await api.get("/cases");
       setCases(response.data);
     } catch (err) {
       setError("Failed to fetch cases");
@@ -36,7 +36,7 @@ export default function CaseList() {
   const handleAddCase = async (e) => {
     e.preventDefault();
     try {
-      const response = await api.post("/api/cases", newCase);
+      const response = await api.post("/cases", newCase);
       setCases([...cases, response.data]);
       setIsModalOpen(false);
       setNewCase({

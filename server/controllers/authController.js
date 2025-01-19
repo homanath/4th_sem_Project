@@ -71,10 +71,11 @@ const authController = {
         email,
         password,
         role,
-        phoneNumber,
         barNumber,
         specialization
       } = req.body;
+
+      console.log('Registration request received:', { name, email, role, barNumber, specialization });
 
       // Check if user already exists
       const existingUser = await User.findOne({ where: { email } });
@@ -95,7 +96,6 @@ const authController = {
         email,
         password: hashedPassword,
         role,
-        phoneNumber,
         barNumber,
         specialization,
         status: 'active'
@@ -104,6 +104,8 @@ const authController = {
       // Remove password from response
       const userResponse = user.toJSON();
       delete userResponse.password;
+
+      console.log('User created successfully:', userResponse);
 
       res.status(201).json({
         success: true,

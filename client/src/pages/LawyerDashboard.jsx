@@ -46,25 +46,34 @@ export default function LawyerDashboard() {
     },
   });
 
-  useEffect(() => {
-    fetchDashboardData();
-  }, [timeframe]);
-
-  const fetchDashboardData = async () => {
+  const loadData = async () => {
     try {
       setLoading(true);
-      const response = await api.get("/api/dashboard/lawyer", {
-        params: { timeframe },
+      setError(null);
+      const response = await api.get("/dashboard/lawyer", {
+        params: { timeframe }
       });
-      setStats(response.data);
+      if (mounted) {
+        setStats(response.data);
+      }
     } catch (err) {
-      console.error("Error fetching dashboard data:", err);
+      console.error("Error:", err);
       setError(err.response?.data?.message || "Failed to load dashboard data");
       toast.error("Failed to load dashboard data");
     } finally {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    let mounted = true;
+
+    loadData();
+
+    return () => {
+      mounted = false;
+    };
+  }, [timeframe]);
 
   const chartData = {
     labels: stats.monthlyStats.labels,
@@ -92,7 +101,7 @@ export default function LawyerDashboard() {
       <div className="text-center py-4">
         <p className="text-red-600">{error}</p>
         <button
-          onClick={fetchDashboardData}
+          onClick={loadData}
           className="mt-4 px-4 py-2 bg-primary-600 text-white rounded hover:bg-primary-700"
         >
           Retry

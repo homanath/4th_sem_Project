@@ -1,12 +1,25 @@
-const { Case, User, Schedule } = require('../models');
+const { Case, User, sequelize } = require('../models');
 const { Op } = require('sequelize');
-const sequelize = require('sequelize');
 
 const dashboardController = {
   getLawyerDashboard: async (req, res) => {
     try {
       const lawyerId = req.user.id;
       const timeframe = req.query.timeframe || 'month';
+
+      // Calculate date range based on timeframe
+      const now = new Date();
+      let startDate;
+      switch (timeframe) {
+        case 'week':
+          startDate = new Date(now.setDate(now.getDate() - 7));
+          break;
+        case 'year':
+          startDate = new Date(now.setFullYear(now.getFullYear() - 1));
+          break;
+        default: // month
+          startDate = new Date(now.setMonth(now.getMonth() - 1));
+      }
 
       // Get total cases
       const totalCases = await Case.count({
@@ -15,7 +28,7 @@ const dashboardController = {
 
       // Get pending cases
       const pendingCases = await Case.count({
-        where: { 
+        where: {
           lawyerId,
           status: 'pending'
         }
@@ -23,29 +36,13 @@ const dashboardController = {
 
       // Get total clients
       const totalClients = await User.count({
-        where: { 
+        where: {
           lawyerId,
           role: 'client'
         }
       });
 
-      // Get upcoming schedules
-      const upcomingSchedules = await Schedule.findAll({
-        where: {
-          date: {
-            [Op.gte]: new Date()
-          }
-        },
-        include: [{
-          model: Case,
-          where: { lawyerId },
-          attributes: ['title']
-        }],
-        order: [['date', 'ASC']],
-        limit: 5
-      });
-
-      // Get case statuses
+      // Get case statuses for chart
       const caseStatuses = await Case.findAll({
         where: { lawyerId },
         attributes: [
@@ -55,20 +52,60 @@ const dashboardController = {
         group: ['status']
       });
 
+      // Get upcoming schedules
+      const upcomingSchedules = await Case.findAll({
+        where: {
+          lawyerId,
+          nextHearingDate: {
+            [Op.gte]: new Date()
+          }
+        },
+        order: [['nextHearingDate', 'ASC']],
+        limit: 5,
+        attributes: ['id', 'title', 'nextHearingDate', 'status']
+      });
+
       // Get monthly stats
-      const monthlyStats = await getMonthlyStats(lawyerId, timeframe);
+      const monthlyStats = await Case.findAll({
+        where: {
+          lawyerId,
+          createdAt: {
+            [Op.gte]: startDate
+          }
+        },
+        attributes: [
+          [sequelize.fn('DATE_FORMAT', sequelize.col('createdAt'), '%Y-%m-%d'), 'date'],
+          [sequelize.fn('COUNT', sequelize.col('id')), 'count']
+        ],
+        group: [sequelize.fn('DATE_FORMAT', sequelize.col('createdAt'), '%Y-%m-%d')],
+        order: [[sequelize.fn('DATE_FORMAT', sequelize.col('createdAt'), '%Y-%m-%d'), 'ASC']]
+      });
+
+      // Format monthly stats for chart
+      const labels = monthlyStats.map(stat => stat.getDataValue('date'));
+      const data = monthlyStats.map(stat => parseInt(stat.getDataValue('count')));
 
       res.json({
         totalCases,
         pendingCases,
         totalClients,
         upcomingSchedules,
-        caseStatuses,
-        monthlyStats
+        caseStatuses: caseStatuses.map(status => ({
+          status: status.status,
+          count: parseInt(status.getDataValue('count'))
+        })),
+        monthlyStats: {
+          labels,
+          data
+        }
       });
     } catch (error) {
-      console.error('Error fetching lawyer dashboard data:', error);
-      res.status(500).json({ message: 'Failed to fetch dashboard data' });
+      console.error('Error in lawyer dashboard:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Error fetching dashboard data',
+        error: process.env.NODE_ENV === 'development' ? error.message : undefined
+      });
     }
   },
 
@@ -118,42 +155,5 @@ const dashboardController = {
     }
   }
 };
-
-// Helper function to get monthly stats
-async function getMonthlyStats(lawyerId, timeframe) {
-  const today = new Date();
-  let months = 6; // Default to 6 months
-
-  switch (timeframe) {
-    case 'week':
-      months = 1;
-      break;
-    case 'year':
-      months = 12;
-      break;
-  }
-
-  const labels = [];
-  const data = [];
-
-  for (let i = months - 1; i >= 0; i--) {
-    const date = new Date(today.getFullYear(), today.getMonth() - i, 1);
-    const endDate = new Date(date.getFullYear(), date.getMonth() + 1, 0);
-
-    const count = await Case.count({
-      where: {
-        lawyerId,
-        createdAt: {
-          [Op.between]: [date, endDate]
-        }
-      }
-    });
-
-    labels.push(date.toLocaleString('default', { month: 'short', year: 'numeric' }));
-    data.push(count);
-  }
-
-  return { labels, data };
-}
 
 module.exports = dashboardController; 

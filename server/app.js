@@ -38,21 +38,62 @@ app.use(cors({
 // Static file serving
 app.use('/uploads', express.static('uploads'));
 
-// Mount routes - Important: Auth routes should be mounted before the general routes
-app.use('/api/auth', authRoutes);  // Mount auth routes first
-app.use('/api', routes);           // Mount other routes
+// Logging middleware
+app.use((req, res, next) => {
+  console.log(`${req.method} ${req.url}`);
+  next();
+});
+
+// Mount routes
+app.use('/api/auth', authRoutes);
+app.use('/api', routes);  // This includes the dashboard routes
+
+// Add a test endpoint
+app.get('/api/test', (req, res) => {
+  res.json({ message: 'API is working' });
+});
 
 // Basic route for testing
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', message: 'Server is running' });
 });
 
-// Error handling middleware
-app.use(errorHandler);
+// 404 handler
+app.use((req, res) => {
+  res.status(404).json({ 
+    success: false, 
+    message: `Cannot ${req.method} ${req.url}` 
+  });
+});
 
-// Add this before mounting routes
+// Error handler
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(500).json({ 
+    success: false, 
+    message: 'Something broke!',
+    error: process.env.NODE_ENV === 'development' ? err.message : undefined
+  });
+});
+
+// Add this after your middleware setup
 app.use((req, res, next) => {
-  console.log(`${req.method} ${req.url}`);
+  console.log(`${req.method} ${req.path}`);
+  next();
+});
+
+// Add this after your CORS middleware
+app.use((req, res, next) => {
+  console.log('Incoming request:', {
+    method: req.method,
+    url: req.url,
+    path: req.path,
+    query: req.query,
+    headers: {
+      authorization: req.headers.authorization ? 'present' : 'missing',
+      ...req.headers
+    }
+  });
   next();
 });
 
@@ -78,7 +119,9 @@ const startServer = async () => {
 
     // Sync database (in development)
     if (process.env.NODE_ENV === 'development') {
+      await db.sequelize.query('SET FOREIGN_KEY_CHECKS = 0');
       await db.sequelize.sync({ alter: true });
+      await db.sequelize.query('SET FOREIGN_KEY_CHECKS = 1');
       console.log('Database synced.');
     }
 

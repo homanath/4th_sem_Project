@@ -194,20 +194,18 @@ const userController = {
   getClients: async (req, res) => {
     try {
       const clients = await User.findAll({
-        where: {
+        where: { 
           role: 'client',
-          lawyerId: req.user.id
+          status: 'active'
         },
-        attributes: { exclude: ['password'] }
+        attributes: ['id', 'name', 'email'],
+        order: [['name', 'ASC']]
       });
 
       res.json(clients);
     } catch (error) {
-      console.error('Error in getClients:', error);
-      res.status(500).json({ 
-        message: 'Failed to fetch clients',
-        error: error.message 
-      });
+      console.error('Error fetching clients:', error);
+      res.status(500).json({ message: 'Error fetching clients' });
     }
   },
 

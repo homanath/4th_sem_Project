@@ -4,74 +4,81 @@ const { deleteFile } = require("../utils/fileUtils");
 const notificationService = require('../services/notificationService');
 
 const caseController = {
-  createCase: async (req, res) => {
+  create: async (req, res) => {
     try {
-      console.log('Request body:', req.body);
-      console.log('User:', req.user);
-      const { title, description, clientId, caseType, courtDetails, filingDate } = req.body;
-      const lawyerId = req.user.id; // Get lawyer ID from authenticated user
+      const { 
+        title, 
+        description, 
+        clientId, 
+        caseType, 
+        status = 'open',
+        priority = 'medium',
+        courtDetails,
+        filingDate,
+        nextHearingDate,
+        judgeName,
+        courtRoom
+      } = req.body;
 
       // Validate required fields
-      if (!title || !caseType || !clientId) {
-        return res.status(400).json({
-          message: "Title, case type, and client are required"
+      if (!title || !clientId || !caseType) {
+        return res.status(400).json({ 
+          message: 'Title, client, and case type are required' 
         });
       }
 
-      // Verify the client exists and belongs to the lawyer
+      // Verify client exists and is a client
       const client = await User.findOne({
         where: { 
           id: clientId,
-          role: 'client',
-          lawyerId: lawyerId
+          role: 'client'
         }
       });
 
       if (!client) {
-        return res.status(404).json({
-          message: "Client not found or not associated with this lawyer"
+        return res.status(400).json({ 
+          message: 'Invalid client selected' 
         });
       }
 
-      // Generate unique case number
-      const caseNumber = await generateCaseNumber();
-
       // Create the case
       const newCase = await Case.create({
-        caseNumber,
         title,
         description,
+        clientId,
+        lawyerId: req.user.id,
         caseType,
-        status: 'open',
+        status,
+        priority,
         courtDetails,
-        filingDate: filingDate || new Date(),
-        lawyerId,
-        clientId
+        filingDate,
+        nextHearingDate,
+        judgeName,
+        courtRoom
       });
 
-      // Fetch the created case with associated data
-      const caseWithDetails = await Case.findByPk(newCase.id, {
+      // Fetch the created case with associations
+      const createdCase = await Case.findByPk(newCase.id, {
         include: [
           {
             model: User,
-            as: 'lawyer',
+            as: 'client',
             attributes: ['id', 'name', 'email']
           },
           {
             model: User,
-            as: 'client',
+            as: 'lawyer',
             attributes: ['id', 'name', 'email']
           }
         ]
       });
 
-      res.status(201).json(caseWithDetails);
+      res.status(201).json(createdCase);
     } catch (error) {
-      console.error('Detailed error:', error);
       console.error('Error creating case:', error);
-      res.status(500).json({
-        message: 'Failed to create case',
-        error: error.message
+      res.status(400).json({ 
+        message: 'Error creating case',
+        error: process.env.NODE_ENV === 'development' ? error.message : undefined
       });
     }
   },

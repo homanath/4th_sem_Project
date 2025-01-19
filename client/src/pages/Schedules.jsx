@@ -17,7 +17,7 @@ export default function Schedules() {
 
   const fetchSchedules = async () => {
     try {
-      const response = await api.get("/api/schedules");
+      const response = await api.get("/schedules");
       setSchedules(response.data);
       setError(null);
     } catch (err) {
@@ -30,41 +30,33 @@ export default function Schedules() {
 
   const handleAddSchedule = async (formData) => {
     try {
-      const response = await api.post("/api/schedules", formData);
+      const response = await api.post("/schedules", formData);
       setSchedules([...schedules, response.data]);
       setShowAddForm(false);
     } catch (err) {
-      throw new Error(
-        err.response?.data?.message || "Failed to create schedule"
-      );
+      console.error("Error creating schedule:", err);
+      throw new Error(err.response?.data?.message || "Failed to create schedule");
     }
   };
 
   const handleEditSchedule = async (formData) => {
     try {
-      const response = await api.put(
-        `/api/schedules/${editingSchedule.id}`,
-        formData
-      );
-      setSchedules(
-        schedules.map((schedule) =>
-          schedule.id === editingSchedule.id ? response.data : schedule
-        )
-      );
+      const response = await api.put(`/schedules/${editingSchedule.id}`, formData);
+      setSchedules(schedules.map((schedule) =>
+        schedule.id === editingSchedule.id ? response.data : schedule
+      ));
       setEditingSchedule(null);
     } catch (err) {
-      throw new Error(
-        err.response?.data?.message || "Failed to update schedule"
-      );
+      console.error("Error updating schedule:", err);
+      throw new Error(err.response?.data?.message || "Failed to update schedule");
     }
   };
 
   const handleDeleteSchedule = async (id) => {
-    if (!window.confirm("Are you sure you want to delete this schedule?"))
-      return;
+    if (!window.confirm("Are you sure you want to delete this schedule?")) return;
 
     try {
-      await api.delete(`/api/schedules/${id}`);
+      await api.delete(`/schedules/${id}`);
       setSchedules(schedules.filter((schedule) => schedule.id !== id));
     } catch (err) {
       console.error("Error deleting schedule:", err);

@@ -43,8 +43,11 @@ export default function Register() {
       // Remove confirmPassword and prepare data for API
       const { confirmPassword, ...registrationData } = formData;
       
-      // Updated endpoint to match the backend route
-      const response = await api.post('/api/register', registrationData);
+      console.log('Sending registration data:', registrationData);
+      
+      const response = await api.post('/api/auth/register', registrationData);
+      
+      console.log('Registration response:', response.data);
       
       if (response.data.success) {
         navigate("/login", { 

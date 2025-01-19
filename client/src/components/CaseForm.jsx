@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useSelector } from "react-redux";
 import { selectAuth } from "../store/slices/authSlice";
+import { toast } from "react-hot-toast";
 import api from "../services/api";
 
 export default function CaseForm({ onSubmit, initialData = null, onCancel }) {
@@ -13,10 +14,17 @@ export default function CaseForm({ onSubmit, initialData = null, onCancel }) {
     description: initialData?.description || "",
     clientId: initialData?.clientId || "",
     caseType: initialData?.caseType || "",
+    status: initialData?.status || "open",
+    priority: initialData?.priority || "medium",
     courtDetails: initialData?.courtDetails || "",
     filingDate: initialData?.filingDate
       ? new Date(initialData.filingDate).toISOString().split("T")[0]
       : "",
+    nextHearingDate: initialData?.nextHearingDate
+      ? new Date(initialData.nextHearingDate).toISOString().split("T")[0]
+      : "",
+    judgeName: initialData?.judgeName || "",
+    courtRoom: initialData?.courtRoom || ""
   });
 
   useEffect(() => {
@@ -25,11 +33,15 @@ export default function CaseForm({ onSubmit, initialData = null, onCancel }) {
 
   const fetchClients = async () => {
     try {
-      const response = await api.get("/api/users/clients");
+      setLoading(true);
+      const response = await api.get("/users/clients");
       setClients(response.data);
     } catch (err) {
       console.error("Error fetching clients:", err);
       setError("Failed to load clients");
+      toast.error("Failed to load clients");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -37,7 +49,7 @@ export default function CaseForm({ onSubmit, initialData = null, onCancel }) {
     const { name, value } = e.target;
     setFormData((prev) => ({
       ...prev,
-      [name]: name === "clientId" ? parseInt(value, 10) : value,
+      [name]: name === "clientId" ? (value ? parseInt(value, 10) : "") : value,
     }));
   };
 
@@ -47,21 +59,47 @@ export default function CaseForm({ onSubmit, initialData = null, onCancel }) {
     setError("");
 
     try {
-      await onSubmit(formData);
-      setFormData({
-        title: "",
-        description: "",
-        clientId: "",
-        caseType: "",
-        courtDetails: "",
-        filingDate: "",
-      });
+      // Add lawyer ID to the form data
+      const caseData = {
+        ...formData,
+        lawyerId: user.id
+      };
+
+      await onSubmit(caseData);
+      toast.success(initialData ? "Case updated successfully" : "Case created successfully");
+      
+      if (!initialData) {
+        // Reset form only for new cases
+        setFormData({
+          title: "",
+          description: "",
+          clientId: "",
+          caseType: "",
+          status: "open",
+          priority: "medium",
+          courtDetails: "",
+          filingDate: "",
+          nextHearingDate: "",
+          judgeName: "",
+          courtRoom: ""
+        });
+      }
     } catch (err) {
-      setError(err.message);
+      console.error("Error saving case:", err);
+      setError(err.message || "Failed to save case");
+      toast.error(err.message || "Failed to save case");
     } finally {
       setLoading(false);
     }
   };
+
+  if (loading && !clients.length) {
+    return (
+      <div className="flex justify-center items-center p-4">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+      </div>
+    );
+  }
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
@@ -70,7 +108,7 @@ export default function CaseForm({ onSubmit, initialData = null, onCancel }) {
       )}
 
       <div>
-        <label className="block text-sm font-medium text-gray-700">Title</label>
+        <label className="block text-sm font-medium text-gray-700">Title *</label>
         <input
           type="text"
           name="title"
@@ -96,7 +134,7 @@ export default function CaseForm({ onSubmit, initialData = null, onCancel }) {
 
       <div>
         <label className="block text-sm font-medium text-gray-700">
-          Client
+          Client *
         </label>
         <select
           name="clientId"
@@ -116,7 +154,7 @@ export default function CaseForm({ onSubmit, initialData = null, onCancel }) {
 
       <div>
         <label className="block text-sm font-medium text-gray-700">
-          Case Type
+          Case Type *
         </label>
         <select
           name="caseType"
@@ -130,6 +168,23 @@ export default function CaseForm({ onSubmit, initialData = null, onCancel }) {
           <option value="criminal">Criminal</option>
           <option value="family">Family</option>
           <option value="corporate">Corporate</option>
+          <option value="other">Other</option>
+        </select>
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-gray-700">
+          Priority
+        </label>
+        <select
+          name="priority"
+          value={formData.priority}
+          onChange={handleChange}
+          className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 focus:border-primary-500 focus:outline-none focus:ring-primary-500"
+        >
+          <option value="low">Low</option>
+          <option value="medium">Medium</option>
+          <option value="high">High</option>
         </select>
       </div>
 
@@ -146,17 +201,60 @@ export default function CaseForm({ onSubmit, initialData = null, onCancel }) {
         />
       </div>
 
-      <div>
-        <label className="block text-sm font-medium text-gray-700">
-          Filing Date
-        </label>
-        <input
-          type="date"
-          name="filingDate"
-          value={formData.filingDate}
-          onChange={handleChange}
-          className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 focus:border-primary-500 focus:outline-none focus:ring-primary-500"
-        />
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label className="block text-sm font-medium text-gray-700">
+            Filing Date
+          </label>
+          <input
+            type="date"
+            name="filingDate"
+            value={formData.filingDate}
+            onChange={handleChange}
+            className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 focus:border-primary-500 focus:outline-none focus:ring-primary-500"
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700">
+            Next Hearing Date
+          </label>
+          <input
+            type="date"
+            name="nextHearingDate"
+            value={formData.nextHearingDate}
+            onChange={handleChange}
+            className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 focus:border-primary-500 focus:outline-none focus:ring-primary-500"
+          />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label className="block text-sm font-medium text-gray-700">
+            Judge Name
+          </label>
+          <input
+            type="text"
+            name="judgeName"
+            value={formData.judgeName}
+            onChange={handleChange}
+            className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 focus:border-primary-500 focus:outline-none focus:ring-primary-500"
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700">
+            Court Room
+          </label>
+          <input
+            type="text"
+            name="courtRoom"
+            value={formData.courtRoom}
+            onChange={handleChange}
+            className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 focus:border-primary-500 focus:outline-none focus:ring-primary-500"
+          />
+        </div>
       </div>
 
       <div className="flex justify-end space-x-4">

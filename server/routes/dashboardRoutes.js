@@ -1,15 +1,14 @@
 const express = require('express');
 const dashboardController = require('../controllers/dashboardController');
-const auth = require('../middleware/auth');
-const lawyerAuth = require('../middleware/lawyerAuth');
+const { authenticate, authorize } = require('../middleware/auth');
 
 const router = express.Router();
 
 // Protect all routes
-router.use(auth);
+router.use(authenticate);
 
 // Lawyer dashboard route
-router.get('/lawyer', lawyerAuth, dashboardController.getLawyerDashboard);
+router.get('/lawyer', authorize(['lawyer']), dashboardController.getLawyerDashboard);
 
 // Client dashboard route
 router.get('/client', dashboardController.getClientDashboard);
