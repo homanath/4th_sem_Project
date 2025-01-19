@@ -62,6 +62,62 @@ const authController = {
       console.error('Logout error:', error);
       res.status(500).json({ message: 'Logout failed' });
     }
+  },
+
+  register: async (req, res) => {
+    try {
+      const {
+        name,
+        email,
+        password,
+        role,
+        phoneNumber,
+        barNumber,
+        specialization
+      } = req.body;
+
+      // Check if user already exists
+      const existingUser = await User.findOne({ where: { email } });
+      if (existingUser) {
+        return res.status(400).json({
+          success: false,
+          message: 'User with this email already exists'
+        });
+      }
+
+      // Hash password
+      const salt = await bcrypt.genSalt(10);
+      const hashedPassword = await bcrypt.hash(password, salt);
+
+      // Create user
+      const user = await User.create({
+        name,
+        email,
+        password: hashedPassword,
+        role,
+        phoneNumber,
+        barNumber,
+        specialization,
+        status: 'active'
+      });
+
+      // Remove password from response
+      const userResponse = user.toJSON();
+      delete userResponse.password;
+
+      res.status(201).json({
+        success: true,
+        message: 'Registration successful',
+        user: userResponse
+      });
+    } catch (error) {
+      console.error('Registration error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Error during registration',
+        error: error.message
+      });
+    }
   }
 };
 

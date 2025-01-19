@@ -3,6 +3,7 @@ const express = require("express");
 const cors = require("cors");
 const cookieParser = require('cookie-parser');
 const routes = require('./routes');
+const authRoutes = require('./routes/authRoutes');
 const errorHandler = require('./middleware/errorHandler');
 const db = require('./models');
 const { initializeSocket } = require('./socket');
@@ -37,8 +38,9 @@ app.use(cors({
 // Static file serving
 app.use('/uploads', express.static('uploads'));
 
-// Mount all routes under /api
-app.use('/api', routes);
+// Mount routes - Important: Auth routes should be mounted before the general routes
+app.use('/api/auth', authRoutes);  // Mount auth routes first
+app.use('/api', routes);           // Mount other routes
 
 // Basic route for testing
 app.get('/health', (req, res) => {
@@ -47,6 +49,12 @@ app.get('/health', (req, res) => {
 
 // Error handling middleware
 app.use(errorHandler);
+
+// Add this before mounting routes
+app.use((req, res, next) => {
+  console.log(`${req.method} ${req.url}`);
+  next();
+});
 
 // Database connection and server start
 const PORT = process.env.PORT || 5000;
